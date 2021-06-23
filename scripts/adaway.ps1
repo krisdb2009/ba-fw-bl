@@ -8,9 +8,16 @@ $FILE      = [System.IO.StreamWriter]::new($HOST_FILE)
 
 $rx        = [System.Text.RegularExpressions.Regex]::Matches($HOST_RAW, "(?<=127\.0\.0\.1 ).*")
 
+$track     = 0
+
 foreach($match in $rx) {
     if($match.Value -eq " localhost") { continue }
-    $FILE.WriteLine($match.Value)
+    Write-Progress -Activity "Resolving" -Status $match.Value -PercentComplete $(($track++ / $rx.Count) * 100)
+    $ips = Resolve-DnsName -Name $match.Value -Type A_AAAA -ErrorAction SilentlyContinue
+    foreach($ip in $ips) {
+        if($ip.Address -eq $null) { continue }
+        $FILE.WriteLine($ip.Address.ToString())
+    }
 }
 
 $FILE.Close()
